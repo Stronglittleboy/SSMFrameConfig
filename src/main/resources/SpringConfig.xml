@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans 
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context 
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+    <context:property-placeholder location="classpath:db.properties"></context:property-placeholder>
+    <!--设置注解扫描-->
+    <context:component-scan base-package="com"></context:component-scan>
+    <!--自动注入-->
+    <mvc:annotation-driven></mvc:annotation-driven>
+    <!--通过内部资源视图解析器，解析jsp文件-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/"></property>
+        <property name="suffix" value=".jsp"></property>
+    </bean>
+    <!--设置静态资源的访问-->
+
+    <!--加载mvc注释驱动-->
+    <mvc:annotation-driven></mvc:annotation-driven>
+    <mvc:resources mapping="/img/**" location="/img/"></mvc:resources>
+    <mvc:resources mapping="/css/**" location="/css/"></mvc:resources>
+    <mvc:resources mapping="/Images/**" location="/Images/"></mvc:resources>
+    <mvc:resources mapping="/Script/**" location="/Script/"></mvc:resources>
+    <mvc:resources mapping="/Style/**" location="/Style/"></mvc:resources>
+    <mvc:resources mapping="/dtree/**" location="/dtree/"></mvc:resources>
+
+    <!--连接数据库-->
+    <bean id="db" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+          p:jdbcUrl="${url}"
+          p:driverClass="${driver}"
+          p:user="${user}"
+          p:password="${password}"
+    >
+    </bean>
+    <!--C3p0连接池管理sql-->
+    <bean id="sqlse" class="org.mybatis.spring.SqlSessionFactoryBean"
+            p:dataSource-ref="db"
+            p:mapperLocations="classpath:/mapper/*.xml"
+            p:configLocation="classpath:mybatis.xml"
+    >
+    </bean>
+
+    <!--SqlSessionTemplate类似的模板管理-->
+    <!--<bean id="temp" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg index="0" ref="sqlSessionFactory"></constructor-arg>
+    </bean>-->
+    <!--SqlSessionTemplate的替代类MapperScannerConfigurer,省略Dao层实现类-->
+   <!-- <bean id="MapperDao" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.dao"></property>
+        &lt;!&ndash;<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>&ndash;&gt;
+        <property name="sqlSessionFactory" ref="sqlSessionFactory"></property>
+    </bean>-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.dao"></property>
+       <!-- <property name="sqlSessionFactory" ref="sqlse"></property>-->
+        <property name="sqlSessionFactoryBeanName" value="sqlse"></property>
+    </bean>
+    <!--事务管理-->
+    <bean id="mytx" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="db"></property>
+    </bean>
+    <!--上传下载，通用部件解析器-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver" p:defaultEncoding="utf-8" p:maxUploadSize="5242880">
+    </bean>
+    <!--配置SpringprocessEngineconfig-->
+    <bean id="processconfig" class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <property name="dataSource" ref="db"/>
+        <property name="transactionManager" ref="mytx"/>
+        <property name="databaseSchemaUpdate" value="true"/>
+    </bean>
+    <bean id="processegin" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processconfig"/>
+    </bean>
+    <!--创建流程服务-->
+    <bean id="repositorService" factory-bean="processegin" factory-method="getRepositoryService"/>
+    <bean id="runtimeServide"  factory-bean="processegin" factory-method="getRuntimeService"/>
+    <bean id="taskService" factory-bean="processegin" factory-method="getTaskService"/>
+    <bean id="historyService" factory-bean="processegin" factory-method="getHistoryService"/>
+    <bean id="fromService" factory-bean="processegin" factory-method="getFormService"/>
+
+    <tx:annotation-driven transaction-manager="mytx"></tx:annotation-driven>
+</beans>
